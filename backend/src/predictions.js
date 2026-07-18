@@ -67,11 +67,35 @@ function getDaysRemaining(upcomingPeriodDateStr, today = new Date()) {
   return daysBetween(todayUTC, upcoming);
 }
 
+/**
+ * Get detailed time remaining until the next period (days, hours, minutes, seconds).
+ */
+function getTimeRemaining(upcomingPeriodDateStr, today = new Date()) {
+  const upcoming = parseDate(upcomingPeriodDateStr); // midnight at start of upcoming day
+
+  const now = today instanceof Date ? today : new Date(today);
+  const nowUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()));
+
+  const diffMs = upcoming.getTime() - nowUTC.getTime();
+
+  if (diffMs <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  const days = Math.floor(diffMs / MS_PER_DAY);
+  const hours = Math.floor((diffMs % MS_PER_DAY) / (60 * 60 * 1000));
+  const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+  const seconds = Math.floor((diffMs % (60 * 1000)) / 1000);
+
+  return { days, hours, minutes, seconds };
+}
+
 module.exports = {
   getNextPeriodDate,
   getUpcomingPeriodDate,
   getFuturePeriods,
   getDaysRemaining,
+  getTimeRemaining,
   parseDate,
   toDateStr,
   addDays,

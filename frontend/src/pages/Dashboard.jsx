@@ -1,12 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { useAppData } from "../DataContext.jsx";
 import { api } from "../api";
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function parseDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function getTimeRemaining(nextPeriodDateStr) {
+  const upcoming = parseDate(nextPeriodDateStr); // midnight at start of upcoming day
+  const now = new Date();
+  const nowUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()));
+  const diffMs = upcoming.getTime() - nowUTC.getTime();
+
+  if (diffMs <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  const days = Math.floor(diffMs / MS_PER_DAY);
+  const hours = Math.floor((diffMs % MS_PER_DAY) / (60 * 60 * 1000));
+  const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+  const seconds = Math.floor((diffMs % (60 * 1000)) / 1000);
+
+  return { days, hours, minutes, seconds };
+}
+
 // Signature element: a circular "moon phase" ring that fills as the cycle
 // progresses toward the next predicted period.
-function CycleRing({ cycleLength, daysRemaining }) {
+function CycleRing({ cycleLength, daysRemaining, nextPeriodDate }) {
   const daysElapsed = Math.max(cycleLength - daysRemaining, 0);
   const progress = Math.min(daysElapsed / cycleLength, 1);
   const size = 176;
@@ -14,6 +39,29 @@ function CycleRing({ cycleLength, daysRemaining }) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - progress);
+
+  const [timeRemaining, setTimeRemaining] = useState(() => getTimeRemaining(nextPeriodDate));
+
+  useEffect(() => {
+    if (!nextPeriodDate) return;
+    setTimeRemaining(getTimeRemaining(nextPeriodDate));
+    const interval = setInterval(() => {
+      setTimeRemaining(getTimeRemaining(nextPeriodDate));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [nextPeriodDate]);
+
+  const formatTimeRemaining = () => {
+    if (!timeRemaining) return "";
+    const { days, hours, minutes, seconds } = timeRemaining;
+    if (days === 0 && hours === 0 && minutes === 0 && seconds === 0) return "now";
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+    return parts.join(" ");
+  };
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -45,6 +93,11 @@ function CycleRing({ cycleLength, daysRemaining }) {
         <span className="text-xs text-plum-700/70 mt-1">
           {daysRemaining === 0 ? "today" : daysRemaining === 1 ? "day left" : "days left"}
         </span>
+        {daysRemaining > 0 && (
+          <span className="text-xs text-plum-500 mt-1 tabular-nums">
+            {formatTimeRemaining()}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -117,7 +170,7 @@ export default function Dashboard() {
         animate={{ opacity: 1 }}
         className="flex flex-col sm:flex-row items-center gap-8 bg-plum-50 rounded-xl2 p-8"
       >
-        <CycleRing cycleLength={settings.cycle_length} daysRemaining={prediction.daysRemaining} />
+        <CycleRing cycleLength={settings.cycle_length} daysRemaining={prediction.daysRemaining} nextPeriodDate={prediction.nextPeriodDate} />
         <div>
           <p className="text-sm text-plum-700/70">Next predicted period</p>
           <p className="font-display text-3xl text-plum-900">{prediction.nextPeriodDate}</p>

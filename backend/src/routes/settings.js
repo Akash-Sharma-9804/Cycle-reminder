@@ -4,6 +4,7 @@ const {
   getUpcomingPeriodDate,
   getFuturePeriods,
   getDaysRemaining,
+  getTimeRemaining,
 } = require("../predictions");
 
 const router = express.Router();
@@ -30,6 +31,7 @@ router.get("/", async (req, res) => {
       prediction: {
         nextPeriodDate: upcoming,
         daysRemaining: getDaysRemaining(upcoming),
+        timeRemaining: getTimeRemaining(upcoming),
         futurePeriods: getFuturePeriods(settings.last_period_date, settings.cycle_length, 3),
       },
     });
