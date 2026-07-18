@@ -1,0 +1,18 @@
+name: Daily Period Reminder Check
+
+# Free alternative scheduler using GitHub Actions cron.
+# GitHub Actions cron runs in UTC, so adjust the hour below for your timezone.
+# This calls your deployed backend's /api/check-reminders endpoint once a day.
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC every day - adjust as needed
+  workflow_dispatch: {} # allows manually triggering a run from the Actions tab
+
+jobs:
+  call-reminder-endpoint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call check-reminders endpoint
+        run: |
+          curl -sS -f "${{ secrets.BACKEND_URL }}/api/check-reminders?key=${{ secrets.API_KEY }}"
