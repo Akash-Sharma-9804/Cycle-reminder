@@ -1,32 +1,36 @@
 // notifications/email.js
 // -----------------------------------------------------------------------
-// Sends email via Gmail using an "App Password" (a 16-character password
-// you generate in your Google Account -> Security -> App Passwords, which
-// only works for this purpose and can be revoked independently of your
-// real Gmail password). Nodemailer just talks SMTP to Gmail's servers.
+// Uses Brevo (https://brevo.com) HTTP API instead of Gmail SMTP, since
+// Render's free tier blocks outbound SMTP ports (25, 465, 587).
 // -----------------------------------------------------------------------
 
-const nodemailer = require("nodemailer");
-
-function getTransporter() {
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-}
+const fetch = require("node-fetch");
 
 async function sendEmail({ to, subject, text }) {
   if (!to) throw new Error("No recipient email configured");
-  const transporter = getTransporter();
-  await transporter.sendMail({
-    from: `"Period Reminder" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    text,
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: {
+        name: "Period Reminder",
+        email: process.env.BREVO_SENDER_EMAIL,
+      },
+      to: [{ email: to }],
+      subject,
+      textContent: text,
+    }),
   });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Brevo API error (${res.status}): ${body}`);
+  }
 }
 
 module.exports = { sendEmail };
