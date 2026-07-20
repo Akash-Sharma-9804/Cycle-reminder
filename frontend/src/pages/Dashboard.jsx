@@ -125,7 +125,15 @@ function getTimeRemaining(nextPeriodDateStr) {
 // Personalized header: greeting + name + a daily quote card.
 function PersonalHeader() {
   const quote = useMemo(() => getRandomQuote(), []);
-  const greeting = useMemo(() => getGreeting(), []);
+  const [greeting, setGreeting] = useState(() => getGreeting());
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+    const interval = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <motion.section
