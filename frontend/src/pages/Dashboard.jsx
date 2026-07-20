@@ -94,6 +94,7 @@ function getRandomQuote() {
 
 function getGreeting() {
   const hour = new Date().getHours();
+  if (hour >= 0 && hour < 4) return "Hello, night owl";
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
