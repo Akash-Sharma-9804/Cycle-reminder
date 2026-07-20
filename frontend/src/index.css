@@ -3,5 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-moon text-ink font-body;
+  @apply text-ink font-body;
+  background: linear-gradient(160deg, #FBF3F8 0%, #F2EDE4 45%, #F7F1F7 100%);
+  min-height: 100vh;
 }
